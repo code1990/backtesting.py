@@ -2,20 +2,9 @@
 
 Backtesting.py
 ==============
-[![Build Status](https://img.shields.io/github/actions/workflow/status/kernc/backtesting.py/ci.yml?branch=master&style=for-the-badge)](https://github.com/kernc/backtesting.py/actions)
-[![Code Coverage](https://img.shields.io/codecov/c/gh/kernc/backtesting.py.svg?style=for-the-badge&label=Covr)](https://codecov.io/gh/kernc/backtesting.py)
-[![Source lines of code](https://img.shields.io/endpoint?url=https%3A%2F%2Fghloc.vercel.app%2Fapi%2Fkernc%2Fbacktesting.py%2Fbadge?filter=.py%26format=human&style=for-the-badge&label=SLOC&color=green)](https://ghloc.vercel.app/kernc/backtesting.py)
-[![Backtesting on PyPI](https://img.shields.io/pypi/v/backtesting.svg?color=blue&style=for-the-badge)](https://pypi.org/project/backtesting)
-[![PyPI downloads](https://img.shields.io/pypi/dd/backtesting.svg?style=for-the-badge&label=D/L&color=skyblue)](https://pypistats.org/packages/backtesting)
-[![Total downloads](https://img.shields.io/pepy/dt/backtesting?style=for-the-badge&label=%E2%88%91&color=skyblue)](https://pypistats.org/packages/backtesting)
-[![GitHub Sponsors](https://img.shields.io/github/sponsors/kernc?color=pink&style=for-the-badge&label=%E2%99%A5)](https://github.com/sponsors/kernc)
 
-Backtest trading strategies with Python.
+使用Python进行交易策略的回测。
 
-[**Project website**](https://kernc.github.io/backtesting.py) + [Documentation] &nbsp;&nbsp;|&nbsp; [YouTube]
-
-[Documentation]: https://kernc.github.io/backtesting.py/doc/backtesting/
-[YouTube]: https://www.youtube.com/results?q=%22backtesting.py%22
 
 Installation
 ------------
@@ -54,72 +43,57 @@ bt.plot()
 Results in:
 
 ```text
-Start                     2004-08-19 00:00:00
-End                       2013-03-01 00:00:00
-Duration                   3116 days 00:00:00
-Exposure Time [%]                       94.27
-Equity Final [$]                     68935.12
-Equity Peak [$]                      68991.22
-Return [%]                             589.35
-Buy & Hold Return [%]                  703.46
-Return (Ann.) [%]                       25.42
-Volatility (Ann.) [%]                   38.43
-CAGR [%]                                16.80
-Sharpe Ratio                             0.66
-Sortino Ratio                            1.30
-Calmar Ratio                             0.77
+开始                     2004-08-19 00:00:00
+结束                       2013-03-01 00:00:00
+持续时间                   3116天 00:00:00
+持仓时间 [%]                       94.27
+最终权益 [$]                     68935.12
+最高权益 [$]                      68991.22
+收益率 [%]                             589.35
+买入并持有收益率 [%]                  703.46
+年化收益率 [%]                       25.42
+年化波动率 [%]                   38.43
+复合年增长率 [%]                                16.80
+夏普比率                             0.66
+索提诺比率                            1.30
+卡尔马比率                             0.77
 Alpha [%]                              450.62
 Beta                                     0.02
-Max. Drawdown [%]                      -33.08
-Avg. Drawdown [%]                       -5.58
-Max. Drawdown Duration      688 days 00:00:00
-Avg. Drawdown Duration       41 days 00:00:00
-# Trades                                   93
-Win Rate [%]                            53.76
-Best Trade [%]                          57.12
-Worst Trade [%]                        -16.63
-Avg. Trade [%]                           1.96
-Max. Trade Duration         121 days 00:00:00
-Avg. Trade Duration          32 days 00:00:00
-Profit Factor                            2.13
-Expectancy [%]                           6.91
+最大回撤 [%]                      -33.08
+平均回撤 [%]                       -5.58
+最长回撤周期      688天 00:00:00
+平均回撤周期       41天 00:00:00
+交易次数                                   93
+胜率 [%]                            53.76
+最佳交易 [%]                          57.12
+最差交易 [%]                        -16.63
+平均交易 [%]                           1.96
+最长交易周期         121天 00:00:00
+平均交易周期          32天 00:00:00
+盈利因子                            2.13
+期望收益 [%]                           6.91
 SQN                                      1.78
-Kelly Criterion                        0.6134
+凯利准则                        0.6134
 _strategy              SmaCross(n1=10, n2=20)
 _equity_curve                          Equ...
 _trades                       Size  EntryB...
 dtype: object
+
 ```
-[![plot of trading simulation](https://i.imgur.com/xRFNHfg.png)](https://kernc.github.io/backtesting.py/#example)
-
-Find more usage examples in the [documentation].
+[![plot of trading simulation](./xRFNHfg.png)](https://kernc.github.io/backtesting.py/#example)
 
 
-Features
+
+
+特性
 --------
-* Simple, well-documented API
-* Blazing fast execution
-* Built-in optimizer
-* Library of composable base strategies and utilities
-* Indicator-library-agnostic
-* Supports _any_ financial instrument with candlestick data
-* Detailed results
-* Interactive visualizations
+- 简单、有良好文档记录的API
 
-![xkcd.com/1570](https://imgs.xkcd.com/comics/engineer_syllogism.png)
+- 极速执行
+- 内置优化器
+- 可组合的基础策略和实用工具库
+- 指标库无关性
+- 支持任何具有烛台数据的金融工具
+- 详细的结果
+- 交互式可视化
 
-
-Bugs
-----
-Before reporting bugs or posting to the
-[discussion board](https://github.com/kernc/backtesting.py/discussions),
-please read [contributing guidelines](CONTRIBUTING.md), particularly the section
-about crafting useful bug reports and ```` ``` ````-fencing your code. We thank you!
-
-
-Alternatives
-------------
-See [alternatives.md] for a list of alternative Python
-backtesting frameworks and related packages.
-
-[alternatives.md]: https://github.com/kernc/backtesting.py/blob/master/doc/alternatives.md
