@@ -12,12 +12,21 @@ if TYPE_CHECKING:
 
 
 def compute_drawdown_duration_peaks(dd: pd.Series):
+    """
+    计算回撤周期和最大回撤。
+
+    参数:
+        dd (pd.Series): 回撤序列。
+
+    返回:
+        tuple: (回撤周期, 最大回撤)
+    """
     iloc = np.unique(np.r_[(dd == 0).values.nonzero()[0], len(dd) - 1])
     iloc = pd.Series(iloc, index=dd.index[iloc])
     df = iloc.to_frame('iloc').assign(prev=iloc.shift())
     df = df[df['iloc'] > df['prev'] + 1].astype(np.int64)
 
-    # If no drawdown since no trade, avoid below for pandas sake and return nan series
+    # 如果没有交易，避免后续操作并返回 NaN 序列
     if not len(df):
         return (dd.replace(0, np.nan),) * 2
 
@@ -28,6 +37,15 @@ def compute_drawdown_duration_peaks(dd: pd.Series):
 
 
 def geometric_mean(returns: pd.Series) -> float:
+    """
+    计算几何平均收益。
+
+    参数:
+        returns (pd.Series): 收益率序列。
+
+    返回:
+        float: 几何平均收益率。
+    """
     returns = returns.fillna(0) + 1
     if np.any(returns <= 0):
         return 0
@@ -41,6 +59,19 @@ def compute_stats(
         strategy_instance: Strategy | None,
         risk_free_rate: float = 0,
 ) -> pd.Series:
+    """
+    计算回测统计指标。
+
+    参数:
+        trades (Union[List['Trade'], pd.DataFrame]): 交易列表或 DataFrame。
+        equity (np.ndarray): 权益曲线数组。
+        ohlc_data (pd.DataFrame): OHLC 数据。
+        strategy_instance (Strategy | None): 策略实例。
+        risk_free_rate (float): 无风险利率（默认为 0）。
+
+    返回:
+        pd.Series: 包含所有统计指标的 Series。
+    """
     assert -1 < risk_free_rate < 1
 
     index = ohlc_data.index
@@ -55,9 +86,9 @@ def compute_stats(
 
     if isinstance(trades, pd.DataFrame):
         trades_df: pd.DataFrame = trades
-        commissions = None  # Not shown
+        commissions = None  # 不显示佣金
     else:
-        # Came straight from Backtest.run()
+        # 直接来自 Backtest.run()
         trades_df = pd.DataFrame({
             'Size': [t.size for t in trades],
             'EntryBar': [t.entry_bar for t in trades],
@@ -74,11 +105,11 @@ def compute_stats(
         trades_df['Duration'] = trades_df['ExitTime'] - trades_df['EntryTime']
         trades_df['Tag'] = [t.tag for t in trades]
 
-        # Add indicator values
+        # 添加指标值
         if len(trades_df) and strategy_instance:
             for ind in strategy_instance._indicators:
                 ind = np.atleast_2d(ind)
-                for i, values in enumerate(ind):  # multi-d indicators
+                for i, values in enumerate(ind):  # 多维指标
                     suffix = f'_{i}' if len(ind) > 1 else ''
                     trades_df[f'Entry_{ind.name}{suffix}'] = values[trades_df['EntryBar'].values]
                     trades_df[f'Exit_{ind.name}{suffix}'] = values[trades_df['ExitBar'].values]
@@ -105,7 +136,7 @@ def compute_stats(
     for t in trades_df.itertuples(index=False):
         have_position[t.EntryBar:t.ExitBar + 1] = 1
 
-    s.loc['Exposure Time [%]'] = have_position.mean() * 100  # In "n bars" time, not index time
+    s.loc['Exposure Time [%]'] = have_position.mean() * 100  # 在“n bars”时间中的暴露时间比例
     s.loc['Equity Final [$]'] = equity[-1]
     s.loc['Equity Peak [$]'] = equity.max()
     if commissions:
@@ -113,7 +144,7 @@ def compute_stats(
     s.loc['Return [%]'] = (equity[-1] - equity[0]) / equity[0] * 100
     first_trading_bar = _indicator_warmup_nbars(strategy_instance)
     c = ohlc_data.Close.values
-    s.loc['Buy & Hold Return [%]'] = (c[-1] - c[first_trading_bar]) / c[first_trading_bar] * 100  # long-only return
+    s.loc['Buy & Hold Return [%]'] = (c[-1] - c[first_trading_bar]) / c[first_trading_bar] * 100  # 长期持有回报
 
     gmean_day_return: float = 0
     day_returns = np.array(np.nan)
@@ -131,36 +162,35 @@ def compute_stats(
         day_returns = equity_df['Equity'].resample(freq).last().dropna().pct_change()
         gmean_day_return = geometric_mean(day_returns)
 
-    # Annualized return and risk metrics are computed based on the (mostly correct)
-    # assumption that the returns are compounded. See: https://dx.doi.org/10.2139/ssrn.3054517
-    # Our annualized return matches `empyrical.annual_return(day_returns)` whereas
-    # our risk doesn't; they use the simpler approach below.
-    annualized_return = (1 + gmean_day_return)**annual_trading_days - 1
+    # 年化收益和风险指标基于复利假设计算。详见：https://dx.doi.org/10.2139/ssrn.3054517
+    annualized_return = (1 + gmean_day_return) ** annual_trading_days - 1
     s.loc['Return (Ann.) [%]'] = annualized_return * 100
-    s.loc['Volatility (Ann.) [%]'] = np.sqrt((day_returns.var(ddof=int(bool(day_returns.shape))) + (1 + gmean_day_return)**2)**annual_trading_days - (1 + gmean_day_return)**(2 * annual_trading_days)) * 100  # noqa: E501
-    # s.loc['Return (Ann.) [%]'] = gmean_day_return * annual_trading_days * 100
-    # s.loc['Risk (Ann.) [%]'] = day_returns.std(ddof=1) * np.sqrt(annual_trading_days) * 100
+    s.loc['Volatility (Ann.) [%]'] = np.sqrt(
+        (day_returns.var(ddof=int(bool(day_returns.shape))) + (1 + gmean_day_return) ** 2) ** annual_trading_days - (
+                    1 + gmean_day_return) ** (2 * annual_trading_days)) * 100  # noqa: E501
     if is_datetime_index:
         time_in_years = (s.loc['Duration'].days + s.loc['Duration'].seconds / 86400) / annual_trading_days
-        s.loc['CAGR [%]'] = ((s.loc['Equity Final [$]'] / equity[0])**(1 / time_in_years) - 1) * 100 if time_in_years else np.nan  # noqa: E501
+        s.loc['CAGR [%]'] = ((s.loc['Equity Final [$]'] / equity[0]) ** (
+                    1 / time_in_years) - 1) * 100 if time_in_years else np.nan  # noqa: E501
 
-    # Our Sharpe mismatches `empyrical.sharpe_ratio()` because they use arithmetic mean return
-    # and simple standard deviation
-    s.loc['Sharpe Ratio'] = (s.loc['Return (Ann.) [%]'] - risk_free_rate * 100) / (s.loc['Volatility (Ann.) [%]'] or np.nan)  # noqa: E501
-    # Our Sortino mismatches `empyrical.sortino_ratio()` because they use arithmetic mean return
+    # 我们的 Sharpe Ratio 和 `empyrical.sharpe_ratio()` 不匹配，因为它们使用算术平均收益和简单标准差
+    s.loc['Sharpe Ratio'] = (s.loc['Return (Ann.) [%]'] - risk_free_rate * 100) / (
+                s.loc['Volatility (Ann.) [%]'] or np.nan)  # noqa: E501
+    # 我们的 Sortino Ratio 和 `empyrical.sortino_ratio()` 不匹配，因为它们使用算术平均收益
     with np.errstate(divide='ignore'):
-        s.loc['Sortino Ratio'] = (annualized_return - risk_free_rate) / (np.sqrt(np.mean(day_returns.clip(-np.inf, 0)**2)) * np.sqrt(annual_trading_days))  # noqa: E501
+        s.loc['Sortino Ratio'] = (annualized_return - risk_free_rate) / (
+                    np.sqrt(np.mean(day_returns.clip(-np.inf, 0) ** 2)) * np.sqrt(annual_trading_days))  # noqa: E501
     max_dd = -np.nan_to_num(dd.max())
     s.loc['Calmar Ratio'] = annualized_return / (-max_dd or np.nan)
     equity_log_returns = np.log(equity[1:] / equity[:-1])
     market_log_returns = np.log(c[1:] / c[:-1])
     beta = np.nan
     if len(equity_log_returns) > 1 and len(market_log_returns) > 1:
-        # len == 0 on dummy call `stats_keys = compute_stats(...)` pre optimization
         cov_matrix = np.cov(equity_log_returns, market_log_returns)
         beta = cov_matrix[0, 1] / cov_matrix[1, 1]
-    # Jensen CAPM Alpha: can be strongly positive when beta is negative and B&H Return is large
-    s.loc['Alpha [%]'] = s.loc['Return [%]'] - risk_free_rate * 100 - beta * (s.loc['Buy & Hold Return [%]'] - risk_free_rate * 100)  # noqa: E501
+    # Jensen CAPM Alpha: 当 beta 为负且 B&H Return 很大时可能为正
+    s.loc['Alpha [%]'] = s.loc['Return [%]'] - risk_free_rate * 100 - beta * (
+                s.loc['Buy & Hold Return [%]'] - risk_free_rate * 100)  # noqa: E501
     s.loc['Beta'] = beta
     s.loc['Max. Drawdown [%]'] = max_dd * 100
     s.loc['Avg. Drawdown [%]'] = -dd_peaks.mean() * 100
@@ -191,15 +221,17 @@ def compute_stats(
 class _Stats(pd.Series):
     def __repr__(self):
         with pd.option_context(
-            'display.max_colwidth', 20,  # Prevent expansion due to _equity and _trades dfs
-            'display.max_rows', len(self),  # Reveal self whole
-            'display.precision', 5,  # Enough for my eyes at least
-            # 'format.na_rep', '--',  # TODO: Enable once it works
+                'display.max_colwidth', 20,  # 防止由于 _equity 和 _trades 数据帧扩展
+                'display.max_rows', len(self),  # 显示完整内容
+                'display.precision', 5,  # 足够的精度
         ):
             return super().__repr__()
 
 
 def dummy_stats():
+    """
+    返回一个虚拟的统计结果用于测试。
+    """
     from .backtesting import Trade, _Broker
     index = pd.DatetimeIndex(['2025'])
     data = pd.DataFrame({col: [np.nan] for col in ('Close',)}, index=index)

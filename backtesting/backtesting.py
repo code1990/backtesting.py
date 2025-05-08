@@ -1,7 +1,6 @@
 """
-Core framework data structures.
-Objects from this module can also be imported from the top-level
-module directly, e.g.
+核心框架数据结构。
+这个模块中的对象也可以直接从顶级模块导入，例如：
 
     from backtesting import Backtest, Strategy
 """
@@ -39,11 +38,9 @@ __pdoc__ = {
 
 class Strategy(metaclass=ABCMeta):
     """
-    A trading strategy base class. Extend this class and
-    override methods
-    `backtesting.backtesting.Strategy.init` and
-    `backtesting.backtesting.Strategy.next` to define
-    your own strategy.
+    一个交易策略基类。扩展此类并覆盖方法
+    `backtesting.backtesting.Strategy.init` 和
+    `backtesting.backtesting.Strategy.next` 来定义你自己的策略。
     """
     def __init__(self, broker, data, params):
         self._indicators = []
@@ -65,9 +62,8 @@ class Strategy(metaclass=ABCMeta):
         for k, v in params.items():
             if not hasattr(self, k):
                 raise AttributeError(
-                    f"Strategy '{self.__class__.__name__}' is missing parameter '{k}'."
-                    "Strategy class should define parameters as class variables before they "
-                    "can be optimized or run with.")
+                    f"策略 '{self.__class__.__name__}' 缺少参数 '{k}'."
+                    "策略类应该在它们可以被优化或运行之前将参数定义为类变量。")
             setattr(self, k, v)
         return params
 
@@ -76,50 +72,38 @@ class Strategy(metaclass=ABCMeta):
           name=None, plot=True, overlay=None, color=None, scatter=False,
           **kwargs) -> np.ndarray:
         """
-        Declare an indicator. An indicator is just an array of values
-        (or a tuple of such arrays in case of, e.g., MACD indicator),
-        but one that is revealed gradually in
-        `backtesting.backtesting.Strategy.next` much like
-        `backtesting.backtesting.Strategy.data` is.
-        Returns `np.ndarray` of indicator values.
+        声明一个指标。指标只是一组值（或者在例如MACD指标的情况下是一组数组），
+        但在`backtesting.backtesting.Strategy.next`中逐渐揭示，就像
+        `backtesting.backtesting.Strategy.data`一样。
+        返回`np.ndarray`类型的指标值。
 
-        `func` is a function that returns the indicator array(s) of
-        same length as `backtesting.backtesting.Strategy.data`.
+        [func](file://D:\dev\dev_123\backtesting.py\venv\Lib\site-packages\joblib\memory.py#L0-L0) 是一个返回与`backtesting.backtesting.Strategy.data`相同长度的指标数组的函数。
 
-        In the plot legend, the indicator is labeled with
-        function name, unless `name` overrides it. If `func` returns
-        a tuple of arrays, `name` can be a sequence of strings, and
-        its size must agree with the number of arrays returned.
+        在图例中，指标用函数名称标记，除非[name](file://D:\dev\dev_123\backtesting.py\venv\Lib\site-packages\six.py#L0-L0)覆盖它。如果[func](file://D:\dev\dev_123\backtesting.py\venv\Lib\site-packages\joblib\memory.py#L0-L0)返回一组数组，
+        [name](file://D:\dev\dev_123\backtesting.py\venv\Lib\site-packages\six.py#L0-L0) 可以是一个字符串序列，并且它的大小必须与返回的数组数量一致。
 
-        If `plot` is `True`, the indicator is plotted on the resulting
-        `backtesting.backtesting.Backtest.plot`.
+        如果[plot](file://D:\dev\dev_123\backtesting.py\backtesting\backtesting.py#L1624-L1733)是`True`，则指标会在`backtesting.backtesting.Backtest.plot`上绘制。
 
-        If `overlay` is `True`, the indicator is plotted overlaying the
-        price candlestick chart (suitable e.g. for moving averages).
-        If `False`, the indicator is plotted standalone below the
-        candlestick chart. By default, a heuristic is used which decides
-        correctly most of the time.
+        如果`overlay`是`True`，则指标会叠加在价格蜡烛图上绘制（适合移动平均线等）。
+        如果`False`，则指标会在蜡烛图下方单独绘制。默认情况下，使用一个启发式方法来决定。
 
-        `color` can be string hex RGB triplet or X11 color name.
-        By default, the next available color is assigned.
+        [color](file://D:\dev\dev_123\backtesting.py\venv\Lib\site-packages\bokeh\models\css.py#L211-L211)可以是十六进制RGB三元组或X11颜色名称。
+        默认情况下，分配下一个可用颜色。
 
-        If `scatter` is `True`, the plotted indicator marker will be a
-        circle instead of a connected line segment (default).
+        如果`scatter`是`True`，则绘制的指标标记将是一个圆圈而不是连接的线段（默认）。
 
-        Additional `*args` and `**kwargs` are passed to `func` and can
-        be used for parameters.
+        额外的`*args`和`**kwargs`会被传递给[func](file://D:\dev\dev_123\backtesting.py\venv\Lib\site-packages\joblib\memory.py#L0-L0)并可用于参数。
 
-        For example, using simple moving average function from TA-Lib:
+        例如，使用TA-Lib中的简单移动平均函数：
 
             def init():
                 self.sma = self.I(ta.SMA, self.data.Close, self.n_sma)
 
         .. warning::
-            Rolling indicators may front-pad warm-up values with NaNs.
-            In this case, the **backtest will only begin on the first bar when
-            all declared indicators have non-NaN values** (e.g. bar 201 for a
-            strategy that uses a 200-bar MA).
-            This can affect results.
+            滚动指标可能会以前填充预热值NaN。
+            在这种情况下，**回测将仅从所有声明的指标都有非NaN值的第一个条开始**
+            （例如，对于使用200条MA的策略，在第201条开始）。
+            这可能会影响结果。
         """
         def _format_name(name: str) -> str:
             return name.format(*map(_as_str, args),
@@ -134,13 +118,13 @@ class Strategy(metaclass=ABCMeta):
         elif try_(lambda: all(isinstance(item, str) for item in name), False):
             name = [_format_name(item) for item in name]
         else:
-            raise TypeError(f'Unexpected `name=` type {type(name)}; expected `str` or '
+            raise TypeError(f'意外的 `name=` 类型 {type(name)}; 预期为 [str](file://D:\dev\dev_123\backtesting.py\venv\Lib\site-packages\narwhals\_compliant\expr.py#L870-L871) 或 '
                             '`Sequence[str]`')
 
         try:
             value = func(*args, **kwargs)
         except Exception as e:
-            raise RuntimeError(f'Indicator "{name}" error. See traceback above.') from e
+            raise RuntimeError(f'指标 "{name}" 错误。请参见上面的跟踪信息。') from e
 
         if isinstance(value, pd.DataFrame):
             value = value.values.T
@@ -149,31 +133,30 @@ class Strategy(metaclass=ABCMeta):
             value = try_(lambda: np.asarray(value, order='C'), None)
         is_arraylike = bool(value is not None and value.shape)
 
-        # Optionally flip the array if the user returned e.g. `df.values`
+        # 可选地翻转数组，如果用户返回了例如`df.values`
         if is_arraylike and np.argmax(value.shape) == 0:
             value = value.T
 
         if isinstance(name, list) and (np.atleast_2d(value).shape[0] != len(name)):
             raise ValueError(
-                f'Length of `name=` ({len(name)}) must agree with the number '
-                f'of arrays the indicator returns ({value.shape[0]}).')
+                f'`name=` 的长度 ({len(name)}) 必须与指标返回的数组数一致 '
+                f'({value.shape[0]}).')
 
         if not is_arraylike or not 1 <= value.ndim <= 2 or value.shape[-1] != len(self._data.Close):
             raise ValueError(
-                'Indicators must return (optionally a tuple of) numpy.arrays of same '
-                f'length as `data` (data shape: {self._data.Close.shape}; indicator "{name}" '
-                f'shape: {getattr(value, "shape", "")}, returned value: {value})')
+                '指标必须返回(可选的一组)与[data](file://D:\dev\dev_123\backtesting.py\backtesting\backtesting.py#L275-L301)长度相同的numpy数组'
+                f'(数据形状: {self._data.Close.shape}; 指标 "{name}" '
+                f'形状: {getattr(value, "shape", "")}, 返回值: {value})')
 
         if plot and overlay is None and np.issubdtype(value.dtype, np.number):
             x = value / self._data.Close
-            # By default, overlay if strong majority of indicator values
-            # is within 30% of Close
+            # 默认情况下，如果大多数指标值在Close的30%范围内，则叠加
             with np.errstate(invalid='ignore'):
                 overlay = ((x < 1.4) & (x > .6)).mean() > .6
 
         value = _Indicator(value, name=name, plot=plot, overlay=overlay,
                            color=color, scatter=scatter,
-                           # _Indicator.s Series accessor uses this:
+                           # _Indicator.s Series访问器使用此属性：
                            index=self.data.index)
         self._indicators.append(value)
         return value
@@ -181,14 +164,13 @@ class Strategy(metaclass=ABCMeta):
     @abstractmethod
     def init(self):
         """
-        Initialize the strategy.
-        Override this method.
-        Declare indicators (with `backtesting.backtesting.Strategy.I`).
-        Precompute what needs to be precomputed or can be precomputed
-        in a vectorized fashion before the strategy starts.
+        初始化策略。
+        覆盖此方法。
+        声明指标（使用`backtesting.backtesting.Strategy.I`）。
+        预计算需要预先计算或可以在向量化方式下计算的内容。
 
-        If you extend composable strategies from `backtesting.lib`,
-        make sure to call:
+        如果你扩展了`backtesting.lib`中的可组合策略，
+        确保调用:
 
             super().init()
         """
@@ -196,15 +178,14 @@ class Strategy(metaclass=ABCMeta):
     @abstractmethod
     def next(self):
         """
-        Main strategy runtime method, called as each new
+        主要的策略运行时方法，每当新的
         `backtesting.backtesting.Strategy.data`
-        instance (row; full candlestick bar) becomes available.
-        This is the main method where strategy decisions
-        upon data precomputed in `backtesting.backtesting.Strategy.init`
-        take place.
+        实例（行；完整蜡烛图条）变得可用时调用。
+        这是主要的方法，在其中进行基于在`backtesting.backtesting.Strategy.init`
+        中预计算的数据的策略决策。
 
-        If you extend composable strategies from `backtesting.lib`,
-        make sure to call:
+        如果你扩展了`backtesting.lib`中的可组合策略，
+        确保调用:
 
             super().next()
         """
@@ -221,19 +202,17 @@ class Strategy(metaclass=ABCMeta):
             tp: Optional[float] = None,
             tag: object = None) -> 'Order':
         """
-        Place a new long order and return it. For explanation of parameters, see `Order`
-        and its properties.
-        Unless you're running `Backtest(..., trade_on_close=True)`,
-        market orders are filled on next bar's open,
-        whereas other order types (limit, stop-limit, stop-market) are filled when
-        the respective conditions are met.
+        放置一个新的多头订单并返回它。有关参数的解释，请参见`Order`及其属性。
+        除非你在运行`Backtest(..., trade_on_close=True)`，
+        否则市场订单将在下一个条的开盘时成交，
+        而其他订单类型（限价单、止损限价单、止损市价单）将在满足相应条件时成交。
 
-        See `Position.close()` and `Trade.close()` for closing existing positions.
+        请参阅`Position.close()`和`Trade.close()`以关闭现有仓位。
 
-        See also `Strategy.sell()`.
+        参见`Strategy.sell()`。
         """
         assert 0 < size < 1 or round(size) == size >= 1, \
-            "size must be a positive fraction of equity, or a positive whole number of units"
+            "size 必须是一个正比例的权益，或一个正整数单位"
         return self._broker.new_order(size, limit, stop, sl, tp, tag)
 
     def sell(self, *,
@@ -244,114 +223,113 @@ class Strategy(metaclass=ABCMeta):
              tp: Optional[float] = None,
              tag: object = None) -> 'Order':
         """
-        Place a new short order and return it. For explanation of parameters, see `Order`
-        and its properties.
+        放置一个新的空头订单并返回它。有关参数的解释，请参见`Order`及其属性。
 
         .. caution::
-            Keep in mind that `self.sell(size=.1)` doesn't close existing `self.buy(size=.1)`
-            trade unless:
+            请注意，`self.sell(size=.1)` 不会关闭现有的 `self.buy(size=.1)`
+            交易，除非：
 
-            * the backtest was run with `exclusive_orders=True`,
-            * the underlying asset price is equal in both cases and
-              the backtest was run with `spread = commission = 0`.
+            * 回测是以 `exclusive_orders=True` 运行的，
+            * 标的资产价格在两种情况下相等并且
+              回测是以 `spread = commission = 0` 运行的。
 
-            Use `Trade.close()` or `Position.close()` to explicitly exit trades.
+            使用 `Trade.close()` 或 `Position.close()` 明确退出交易。
 
-        See also `Strategy.buy()`.
+        参见 `Strategy.buy()`。
 
         .. note::
-            If you merely want to close an existing long position,
-            use `Position.close()` or `Trade.close()`.
+            如果你只是想关闭现有的多头仓位，
+            使用 `Position.close()` 或 `Trade.close()`。
         """
         assert 0 < size < 1 or round(size) == size >= 1, \
-            "size must be a positive fraction of equity, or a positive whole number of units"
+            "size 必须是一个正比例的权益，或一个正整数单位"
         return self._broker.new_order(-size, limit, stop, sl, tp, tag)
 
     @property
     def equity(self) -> float:
-        """Current account equity (cash plus assets)."""
+        """当前账户权益（现金加上资产）。"""
         return self._broker.equity
 
     @property
     def data(self) -> _Data:
         """
-        Price data, roughly as passed into
-        `backtesting.backtesting.Backtest.__init__`,
-        but with two significant exceptions:
+        价格数据，大致如传入到
+        `backtesting.backtesting.Backtest.__init__`，
+        但有两个显著例外：
 
-        * `data` is _not_ a DataFrame, but a custom structure
-          that serves customized numpy arrays for reasons of performance
-          and convenience. Besides OHLCV columns, `.index` and length,
-          it offers `.pip` property, the smallest price unit of change.
-        * Within `backtesting.backtesting.Strategy.init`, `data` arrays
-          are available in full length, as passed into
+        * `data` 不是 DataFrame，而是一个自定义结构
+          它提供了定制化的 numpy 数组，为了性能和方便。
+          除了 OHLCV 列，`.index` 和长度，
+          它还提供 `.pip` 属性，最小的价格变动单位。
+        * 在 `backtesting.backtesting.Strategy.init` 内部，`data` 数组
+          可以在完整的长度中获得，如传入到
           `backtesting.backtesting.Backtest.__init__`
-          (for precomputing indicators and such). However, within
-          `backtesting.backtesting.Strategy.next`, `data` arrays are
-          only as long as the current iteration, simulating gradual
-          price point revelation. In each call of
-          `backtesting.backtesting.Strategy.next` (iteratively called by
-          `backtesting.backtesting.Backtest` internally),
-          the last array value (e.g. `data.Close[-1]`)
-          is always the _most recent_ value.
-        * If you need data arrays (e.g. `data.Close`) to be indexed
-          **Pandas series**, you can call their `.s` accessor
-          (e.g. `data.Close.s`). If you need the whole of data
-          as a **DataFrame**, use `.df` accessor (i.e. `data.df`).
+          （用于预计算指标等）。然而，在
+          `backtesting.backtesting.Strategy.next` 内部，`data` 数组
+          只有当前迭代那么长，模拟逐步揭示价格点。在每次调用
+          `backtesting.backtesting.Strategy.next`（由
+          `backtesting.backtesting.Backtest` 内部迭代调用）时，
+          最后一个数组值（例如 `data.Close[-1]`）
+          总是最新的值。
+        * 如果你需要数据数组（例如 `data.Close`）被索引为
+          **Pandas series**，你可以调用它们的 `.s` 访问器
+          （例如 `data.Close.s`）。如果你需要整个数据作为
+          **DataFrame**，请使用 `.df` 访问器（即 `data.df`）。
         """
         return self._data
 
     @property
     def position(self) -> 'Position':
-        """Instance of `backtesting.backtesting.Position`."""
+        """实例化 `backtesting.backtesting.Position`。"""
         return self._broker.position
 
     @property
     def orders(self) -> 'Tuple[Order, ...]':
-        """List of orders (see `Order`) waiting for execution."""
+        """等待执行的订单列表（参见 `Order`）。"""
         return _Orders(self._broker.orders)
 
     @property
     def trades(self) -> 'Tuple[Trade, ...]':
-        """List of active trades (see `Trade`)."""
+        """活动交易的列表（参见 `Trade`）。"""
         return tuple(self._broker.trades)
 
     @property
     def closed_trades(self) -> 'Tuple[Trade, ...]':
-        """List of settled trades (see `Trade`)."""
+        """已结算交易的列表（参见 `Trade`）。"""
         return tuple(self._broker.closed_trades)
+
 
 
 class _Orders(tuple):
     """
-    TODO: remove this class. Only for deprecation.
+    TODO: 删除此类。仅用于弃用。
     """
     def cancel(self):
-        """Cancel all non-contingent (i.e. SL/TP) orders."""
+        """取消所有非或有（即止损/止盈）订单。"""
         for order in self:
             if not order.is_contingent:
                 order.cancel()
 
     def __getattr__(self, item):
-        # TODO: Warn on deprecations from the previous version. Remove in the next.
+        # TODO: 从上一个版本开始警告弃用内容。在下一个版本中删除。
         removed_attrs = ('entry', 'set_entry', 'is_long', 'is_short',
                          'sl', 'tp', 'set_sl', 'set_tp')
         if item in removed_attrs:
-            raise AttributeError(f'Strategy.orders.{"/.".join(removed_attrs)} were removed in'
-                                 'Backtesting 0.2.0. '
-                                 'Use `Order` API instead. See docs.')
-        raise AttributeError(f"'tuple' object has no attribute {item!r}")
+            raise AttributeError(f'Strategy.orders.{"/.".join(removed_attrs)} 已在'
+                                 'Backtesting 0.2.0 中移除。'
+                                 '请使用 [Order](file://D:\dev\dev_123\backtesting.py\backtesting\backtesting.py#L380-L534) API。参见文档。')
+        raise AttributeError(f"'tuple' 对象没有属性 {item!r}")
+
 
 
 class Position:
     """
-    Currently held asset position, available as
-    `backtesting.backtesting.Strategy.position` within
-    `backtesting.backtesting.Strategy.next`.
-    Can be used in boolean contexts, e.g.
+    当前持有的资产仓位，可在 `backtesting.backtesting.Strategy.next` 中
+    通过 `backtesting.backtesting.Strategy.position` 获取。
+    可以在布尔上下文中使用，例如：
 
         if self.position:
-            ...  # we have a position, either long or short
+            ...  # 我们持有一个仓位，无论是多头还是空头
     """
     def __init__(self, broker: '_Broker'):
         self.__broker = broker
@@ -361,33 +339,34 @@ class Position:
 
     @property
     def size(self) -> float:
-        """Position size in units of asset. Negative if position is short."""
+        """仓位大小（以资产单位表示）。若为负值则表示空头仓位。"""
         return sum(trade.size for trade in self.__broker.trades)
 
     @property
     def pl(self) -> float:
-        """Profit (positive) or loss (negative) of the current position in cash units."""
+        """当前仓位的盈亏金额（正值为盈利，负值为亏损）。"""
         return sum(trade.pl for trade in self.__broker.trades)
 
     @property
     def pl_pct(self) -> float:
-        """Profit (positive) or loss (negative) of the current position in percent."""
+        """当前仓位的百分比盈亏（以百分比表示）。"""
         total_invested = sum(trade.entry_price * abs(trade.size) for trade in self.__broker.trades)
         return (self.pl / total_invested) * 100 if total_invested else 0
 
     @property
     def is_long(self) -> bool:
-        """True if the position is long (position size is positive)."""
+        """如果仓位是多头（仓位大小为正值），返回 True。"""
         return self.size > 0
 
     @property
     def is_short(self) -> bool:
-        """True if the position is short (position size is negative)."""
+        """如果仓位是空头（仓位大小为负值），返回 True。"""
         return self.size < 0
 
     def close(self, portion: float = 1.):
         """
-        Close portion of position by closing `portion` of each active trade. See `Trade.close`.
+        关闭部分仓位，通过关闭每个活跃交易的指定比例来实现。
+        查看 [Trade.close](file://D:\dev\dev_123\backtesting.py\backtesting\backtesting.py#L568-L573) 方法了解更多。
         """
         for trade in self.__broker.trades:
             trade.close(portion)
@@ -397,24 +376,26 @@ class Position:
 
 
 class _OutOfMoneyError(Exception):
+    """当账户资金不足时抛出的异常"""
     pass
 
 
 class Order:
     """
-    Place new orders through `Strategy.buy()` and `Strategy.sell()`.
-    Query existing orders through `Strategy.orders`.
+    通过 `Strategy.buy()` 和 `Strategy.sell()` 放置新的订单。
+    通过 `Strategy.orders` 查询已存在的订单。
 
-    When an order is executed or [filled], it results in a `Trade`.
+    当一个订单被执行或[成交]时，就会产生一个 `Trade`（交易）。
 
-    If you wish to modify aspects of a placed but not yet filled order,
-    cancel it and place a new one instead.
+    如果你想修改一个已经下单但尚未成交的订单，
+    应该先取消它，然后重新下单。
 
-    All placed orders are [Good 'Til Canceled].
+    所有已下单的订单均为 [Good 'Til Canceled]（长期有效直到成交或手动取消）。
 
     [filled]: https://www.investopedia.com/terms/f/fill.asp
     [Good 'Til Canceled]: https://www.investopedia.com/terms/g/gtc.asp
     """
+
     def __init__(self, broker: '_Broker',
                  size: float,
                  limit_price: Optional[float] = None,
@@ -434,11 +415,17 @@ class Order:
         self.__tag = tag
 
     def _replace(self, **kwargs):
+        """
+        替换订单的一些属性值。
+        """
         for k, v in kwargs.items():
             setattr(self, f'_{self.__class__.__qualname__}__{k}', v)
         return self
 
     def __repr__(self):
+        """
+        返回订单的字符串表示，用于调试和日志记录。
+        """
         return '<Order {}>'.format(', '.join(f'{param}={try_(lambda: round(value, 5), value)!r}'
                                              for param, value in (
                                                  ('size', self.__size),
@@ -448,10 +435,12 @@ class Order:
                                                  ('tp', self.__tp_price),
                                                  ('contingent', self.is_contingent),
                                                  ('tag', self.__tag),
-                                             ) if value is not None))  # noqa: E126
+                                             ) if value is not None))
 
     def cancel(self):
-        """Cancel the order."""
+        """
+        取消当前订单。
+        """
         self.__broker.orders.remove(self)
         trade = self.__parent_trade
         if trade:
@@ -460,37 +449,37 @@ class Order:
             elif self is trade._tp_order:
                 trade._replace(tp_order=None)
             else:
-                pass  # Order placed by Trade.close()
+                pass  # 订单由 Trade.close() 下单，无需处理
 
-    # Fields getters
+    # 获取订单字段属性
 
     @property
     def size(self) -> float:
         """
-        Order size (negative for short orders).
+        订单大小（负值表示空头订单）。
 
-        If size is a value between 0 and 1, it is interpreted as a fraction of current
-        available liquidity (cash plus `Position.pl` minus used margin).
-        A value greater than or equal to 1 indicates an absolute number of units.
+        如果 size 是 0 到 1 之间的值，它将被解释为当前可用流动性的一个比例
+        （现金加上仓位盈亏减去已用保证金）。
+        值大于等于 1 表示绝对单位数量。
         """
         return self.__size
 
     @property
     def limit(self) -> Optional[float]:
         """
-        Order limit price for [limit orders], or None for [market orders],
-        which are filled at next available price.
+        [限价单] 的限价，如果是 [市价单] 则为 None。
+        限价单将在下一个可用价格成交。
 
-        [limit orders]: https://www.investopedia.com/terms/l/limitorder.asp
-        [market orders]: https://www.investopedia.com/terms/m/marketorder.asp
+        [限价单]: https://www.investopedia.com/terms/l/limitorder.asp
+        [市价单]: https://www.investopedia.com/terms/m/marketorder.asp
         """
         return self.__limit_price
 
     @property
     def stop(self) -> Optional[float]:
         """
-        Order stop price for [stop-limit/stop-market][_] order,
-        otherwise None if no stop was set, or the stop price has already been hit.
+        [止损限价单/止损市价单] 的止损价。
+        如果没有设置止损价或者止损价已经被触发，则返回 None。
 
         [_]: https://www.investopedia.com/terms/s/stoporder.asp
         """
@@ -499,18 +488,16 @@ class Order:
     @property
     def sl(self) -> Optional[float]:
         """
-        A stop-loss price at which, if set, a new contingent stop-market order
-        will be placed upon the `Trade` following this order's execution.
-        See also `Trade.sl`.
+        若设置了止损价，在执行此订单后，一个新的或有的止损市价单将会在 [Trade](file://D:\dev\dev_123\backtesting.py\backtesting\backtesting.py#L539-L711) 上放置。
+        参见 [Trade.sl](file://D:\dev\dev_123\backtesting.py\backtesting\backtesting.py#L672-L680)。
         """
         return self.__sl_price
 
     @property
     def tp(self) -> Optional[float]:
         """
-        A take-profit price at which, if set, a new contingent limit order
-        will be placed upon the `Trade` following this order's execution.
-        See also `Trade.tp`.
+        若设置了止盈价，在执行此订单后，一个新的或有的限价单将会在 [Trade](file://D:\dev\dev_123\backtesting.py\backtesting\backtesting.py#L539-L711) 上放置。
+        参见 [Trade.tp](file://D:\dev\dev_123\backtesting.py\backtesting\backtesting.py#L687-L695)。
         """
         return self.__tp_price
 
@@ -521,35 +508,33 @@ class Order:
     @property
     def tag(self):
         """
-        Arbitrary value (such as a string) which, if set, enables tracking
-        of this order and the associated `Trade` (see `Trade.tag`).
+        随意设置的值（如字符串），如果设置了，可以用来跟踪此订单及其相关的 [Trade](file://D:\dev\dev_123\backtesting.py\backtesting\backtesting.py#L539-L711)（参见 [Trade.tag](file://D:\dev\dev_123\backtesting.py\backtesting\backtesting.py#L607-L617)）。
         """
         return self.__tag
 
     __pdoc__['Order.parent_trade'] = False
 
-    # Extra properties
+    # 其他属性
 
     @property
     def is_long(self):
-        """True if the order is long (order size is positive)."""
+        """如果订单是多头（订单大小为正值），返回 True。"""
         return self.__size > 0
 
     @property
     def is_short(self):
-        """True if the order is short (order size is negative)."""
+        """如果订单是空头（订单大小为负值），返回 True。"""
         return self.__size < 0
 
     @property
     def is_contingent(self):
         """
-        True for [contingent] orders, i.e. [OCO] stop-loss and take-profit bracket orders
-        placed upon an active trade. Remaining contingent orders are canceled when
-        their parent `Trade` is closed.
+        对于[或有订单]返回 True，例如在活跃交易上放置的止损和止盈挂单。
+        当其父级 `Trade` 被关闭时，剩余的或有订单也将被取消。
 
-        You can modify contingent orders through `Trade.sl` and `Trade.tp`.
+        你可以通过 `Trade.sl` 和 `Trade.tp` 来修改这些或有订单。
 
-        [contingent]: https://www.investopedia.com/terms/c/contingentorder.asp
+        [或有订单]: https://www.investopedia.com/terms/c/contingentorder.asp
         [OCO]: https://www.investopedia.com/terms/o/oco.asp
         """
         return bool((parent := self.__parent_trade) and
@@ -559,9 +544,12 @@ class Order:
 
 class Trade:
     """
-    When an `Order` is filled, it results in an active `Trade`.
-    Find active trades in `Strategy.trades` and closed, settled trades in `Strategy.closed_trades`.
+    当一个 `Order` 被成交时，就会产生一个活跃的 `Trade`（交易）。
+
+    你可以在 `Strategy.trades` 中找到活跃的交易，
+    在 `Strategy.closed_trades` 中找到已关闭和结算的交易。
     """
+
     def __init__(self, broker: '_Broker', size: int, entry_price: float, entry_bar, tag):
         self.__broker = broker
         self.__size = size
@@ -575,128 +563,137 @@ class Trade:
         self._commissions = 0
 
     def __repr__(self):
+        """
+        返回交易对象的字符串表示，用于调试和日志记录。
+        """
         return f'<Trade size={self.__size} time={self.__entry_bar}-{self.__exit_bar or ""} ' \
                f'price={self.__entry_price}-{self.__exit_price or ""} pl={self.pl:.0f}' \
                f'{" tag=" + str(self.__tag) if self.__tag is not None else ""}>'
 
     def _replace(self, **kwargs):
+        """
+        替换交易的一些属性值。
+        """
         for k, v in kwargs.items():
             setattr(self, f'_{self.__class__.__qualname__}__{k}', v)
         return self
 
     def _copy(self, **kwargs):
+        """
+        创建当前交易的一个副本，并替换部分属性值。
+        """
         return copy(self)._replace(**kwargs)
 
     def close(self, portion: float = 1.):
-        """Place new `Order` to close `portion` of the trade at next market price."""
-        assert 0 < portion <= 1, "portion must be a fraction between 0 and 1"
+        """
+        放置一个新的订单来关闭当前交易的一部分。
+
+        参数：
+            portion (float): 关闭的比例，取值范围为 0 到 1。
+        """
+        assert 0 < portion <= 1, "portion 必须是介于 0 和 1 之间的分数"
         size = copysign(max(1, round(abs(self.__size) * portion)), -self.__size)
         order = Order(self.__broker, size, parent_trade=self, tag=self.__tag)
         self.__broker.orders.insert(0, order)
 
-    # Fields getters
+    # 获取交易字段属性
 
     @property
     def size(self):
-        """Trade size (volume; negative for short trades)."""
+        """交易大小（正为多头，负为空头）。"""
         return self.__size
 
     @property
     def entry_price(self) -> float:
-        """Trade entry price."""
+        """开仓价格。"""
         return self.__entry_price
 
     @property
     def exit_price(self) -> Optional[float]:
-        """Trade exit price (or None if the trade is still active)."""
+        """平仓价格（如果交易仍然有效，则返回 None）。"""
         return self.__exit_price
 
     @property
     def entry_bar(self) -> int:
-        """Candlestick bar index of when the trade was entered."""
+        """开仓时的价格条索引。"""
         return self.__entry_bar
 
     @property
     def exit_bar(self) -> Optional[int]:
-        """
-        Candlestick bar index of when the trade was exited
-        (or None if the trade is still active).
-        """
+        """平仓时的价格条索引（如果交易仍然有效，则返回 None）。"""
         return self.__exit_bar
 
     @property
     def tag(self):
         """
-        A tag value inherited from the `Order` that opened
-        this trade.
+        继承自创建此交易的订单标签。
 
-        This can be used to track trades and apply conditional
-        logic / subgroup analysis.
-
-        See also `Order.tag`.
+        可以使用这个标签进行交易跟踪、条件逻辑或子组分析。
+        参见 [Order.tag](file://D:\dev\dev_123\backtesting.py\backtesting\backtesting.py#L568-L573)。
         """
         return self.__tag
 
     @property
     def _sl_order(self):
+        """止损订单（内部使用）"""
         return self.__sl_order
 
     @property
     def _tp_order(self):
+        """止盈订单（内部使用）"""
         return self.__tp_order
 
-    # Extra properties
+    # 额外属性
 
     @property
     def entry_time(self) -> Union[pd.Timestamp, int]:
-        """Datetime of when the trade was entered."""
+        """交易开仓时间（基于数据的时间索引）"""
         return self.__broker._data.index[self.__entry_bar]
 
     @property
     def exit_time(self) -> Optional[Union[pd.Timestamp, int]]:
-        """Datetime of when the trade was exited."""
+        """交易平仓时间（基于数据的时间索引）"""
         if self.__exit_bar is None:
             return None
         return self.__broker._data.index[self.__exit_bar]
 
     @property
     def is_long(self):
-        """True if the trade is long (trade size is positive)."""
+        """如果交易是多头（交易大小为正值），返回 True。"""
         return self.__size > 0
 
     @property
     def is_short(self):
-        """True if the trade is short (trade size is negative)."""
+        """如果交易是空头（交易大小为负值），返回 True。"""
         return not self.is_long
 
     @property
     def pl(self):
-        """Trade profit (positive) or loss (negative) in cash units."""
+        """交易利润（正值）或亏损（负值）金额。"""
         price = self.__exit_price or self.__broker.last_price
         return self.__size * (price - self.__entry_price)
 
     @property
     def pl_pct(self):
-        """Trade profit (positive) or loss (negative) in percent."""
+        """交易利润或亏损百分比。"""
         price = self.__exit_price or self.__broker.last_price
         return copysign(1, self.__size) * (price / self.__entry_price - 1)
 
     @property
     def value(self):
-        """Trade total value in cash (volume × price)."""
+        """交易总价值（体积 × 价格）。"""
         price = self.__exit_price or self.__broker.last_price
         return abs(self.__size) * price
 
-    # SL/TP management API
+    # 止损/止盈管理 API
 
     @property
     def sl(self):
         """
-        Stop-loss price at which to close the trade.
+        止损价，设置后将生成一个对应的止损订单。
 
-        This variable is writable. By assigning it a new price value,
-        you create or modify the existing SL order.
-        By assigning it `None`, you cancel it.
+        .. note::
+            如果你修改了这个属性，它会取消之前的止损订单并重新下单。
         """
         return self.__sl_order and self.__sl_order.stop
 
@@ -707,11 +704,10 @@ class Trade:
     @property
     def tp(self):
         """
-        Take-profit price at which to close the trade.
+        止盈价，设置后将生成一个对应的止盈订单。
 
-        This property is writable. By assigning it a new price value,
-        you create or modify the existing TP order.
-        By assigning it `None`, you cancel it.
+        .. note::
+            如果你修改了这个属性，它会取消之前的止盈订单并重新下单。
         """
         return self.__tp_order and self.__tp_order.limit
 
@@ -720,6 +716,13 @@ class Trade:
         self.__set_contingent('tp', price)
 
     def __set_contingent(self, type, price):
+        """
+        设置或更新一个或有订单（止损/止盈）。
+
+        参数：
+            type (str): `'sl'` 表示止损，`'tp'` 表示止盈。
+            price (float): 新的价格值。
+        """
         assert type in ('sl', 'tp')
         assert price is None or 0 < price < np.inf, f'Make sure 0 < price < inf! price: {price}'
         attr = f'_{self.__class__.__qualname__}__{type}_order'
@@ -735,11 +738,13 @@ class Trade:
 class _Broker:
     def __init__(self, *, data, cash, spread, commission, margin,
                  trade_on_close, hedging, exclusive_orders, index):
-        assert cash > 0, f"cash should be > 0, is {cash}"
-        assert 0 < margin <= 1, f"margin should be between 0 and 1, is {margin}"
-        self._data: _Data = data
-        self._cash = cash
+        assert cash > 0, f"初始现金必须大于0，当前为 {cash}"
+        assert 0 < margin <= 1, f"保证金比例应在 (0, 1] 范围内，当前为 {margin}"
 
+        self._data: _Data = data  # 市场数据对象
+        self._cash = cash  # 当前现金余额
+
+        # 设置手续费规则：如果是函数则直接使用，否则解析为固定和相对手续费
         if callable(commission):
             self._commission = commission
         else:
@@ -747,25 +752,26 @@ class _Broker:
                 self._commission_fixed, self._commission_relative = commission
             except TypeError:
                 self._commission_fixed, self._commission_relative = 0, commission
-            assert self._commission_fixed >= 0, 'Need fixed cash commission in $ >= 0'
+            assert self._commission_fixed >= 0, '固定手续费必须 >= 0'
             assert -.1 <= self._commission_relative < .1, \
-                ("commission should be between -10% "
-                 f"(e.g. market-maker's rebates) and 10% (fees), is {self._commission_relative}")
+                ("相对手续费应在 -10% 到 10% 之间，例如市场回扣或平台费率，"
+                 f"当前为 {self._commission_relative}")
             self._commission = self._commission_func
 
-        self._spread = spread
-        self._leverage = 1 / margin
-        self._trade_on_close = trade_on_close
-        self._hedging = hedging
-        self._exclusive_orders = exclusive_orders
+        self._spread = spread  # 买卖价差（点差）
+        self._leverage = 1 / margin  # 杠杆率 = 1 / 保证金比例
+        self._trade_on_close = trade_on_close  # 是否使用收盘价成交
+        self._hedging = hedging  # 是否允许对冲（多空同时持仓）
+        self._exclusive_orders = exclusive_orders  # 是否开启互斥订单（新订单取消旧订单）
 
-        self._equity = np.tile(np.nan, len(index))
-        self.orders: List[Order] = []
-        self.trades: List[Trade] = []
-        self.position = Position(self)
-        self.closed_trades: List[Trade] = []
+        self._equity = np.tile(np.nan, len(index))  # 账户权益曲线初始化
+        self.orders: List[Order] = []  # 当前未成交订单列表
+        self.trades: List[Trade] = []  # 当前持仓交易列表
+        self.position = Position(self)  # 当前总持仓对象
+        self.closed_trades: List[Trade] = []  # 已平仓交易记录列表
 
     def _commission_func(self, order_size, price):
+        # 计算交易手续费：固定费用 + 按交易金额比例计算的费用
         return self._commission_fixed + abs(order_size) * price * self._commission_relative
 
     def __repr__(self):
@@ -781,7 +787,8 @@ class _Broker:
                   *,
                   trade: Optional[Trade] = None) -> Order:
         """
-        Argument size indicates whether the order is long or short
+        创建一个新订单。`size` 表示订单方向和大小，正数为多，负数为空。
+        可设置限价、止损、止盈等参数。
         """
         size = float(size)
         stop = stop and float(stop)
@@ -793,65 +800,63 @@ class _Broker:
         assert size != 0, size
         adjusted_price = self._adjusted_price(size)
 
+        # 合法性校验：多单价格关系为 SL < Limit/Stop/市价 < TP，空单相反
         if is_long:
             if not (sl or -np.inf) < (limit or stop or adjusted_price) < (tp or np.inf):
                 raise ValueError(
-                    "Long orders require: "
-                    f"SL ({sl}) < LIMIT ({limit or stop or adjusted_price}) < TP ({tp})")
+                    "多单要求: "
+                    f"止损({sl}) < 限价/止损价({limit or stop or adjusted_price}) < 止盈({tp})")
         else:
             if not (tp or -np.inf) < (limit or stop or adjusted_price) < (sl or np.inf):
                 raise ValueError(
-                    "Short orders require: "
-                    f"TP ({tp}) < LIMIT ({limit or stop or adjusted_price}) < SL ({sl})")
+                    "空单要求: "
+                    f"止盈({tp}) < 限价/止损价({limit or stop or adjusted_price}) < 止损({sl})")
 
         order = Order(self, size, limit, stop, sl, tp, trade, tag)
 
-        if not trade:
-            # If exclusive orders (each new order auto-closes previous orders/position),
-            # cancel all non-contingent orders and close all open trades beforehand
-            if self._exclusive_orders:
-                for o in self.orders:
-                    if not o.is_contingent:
-                        o.cancel()
-                for t in self.trades:
-                    t.close()
+        if not trade and self._exclusive_orders:
+            # 如果开启互斥订单，新订单将取消之前的所有订单并平掉持仓
+            for o in self.orders:
+                if not o.is_contingent:
+                    o.cancel()
+            for t in self.trades:
+                t.close()
 
-        # Put the new order in the order queue, Ensure SL orders are processed first
+        # 将新订单插入队列；如果是止损订单，优先处理
         self.orders.insert(0 if trade and stop else len(self.orders), order)
-
         return order
 
     @property
     def last_price(self) -> float:
-        """ Price at the last (current) close. """
+        """ 获取最近收盘价 """
         return self._data.Close[-1]
 
     def _adjusted_price(self, size=None, price=None) -> float:
         """
-        Long/short `price`, adjusted for spread.
-        In long positions, the adjusted price is a fraction higher, and vice versa.
+        返回考虑点差后的价格。多单价格会上浮，空单价格下调。
         """
         return (price or self.last_price) * (1 + copysign(self._spread, size))
 
     @property
     def equity(self) -> float:
+        """ 当前总权益 = 现金 + 所有持仓盈亏 """
         return self._cash + sum(trade.pl for trade in self.trades)
 
     @property
     def margin_available(self) -> float:
-        # From https://github.com/QuantConnect/Lean/pull/3768
+        """ 当前可用保证金 """
         margin_used = sum(trade.value / self._leverage for trade in self.trades)
         return max(0, self.equity - margin_used)
 
     def next(self):
+        """ 执行一次迭代，处理订单，更新账户状态 """
         i = self._i = len(self._data) - 1
         self._process_orders()
 
-        # Log account equity for the equity curve
         equity = self.equity
         self._equity[i] = equity
 
-        # If equity is negative, set all to 0 and stop the simulation
+        # 账户爆仓处理
         if equity <= 0:
             assert self.margin_available <= 0
             for trade in self.trades:
@@ -861,34 +866,29 @@ class _Broker:
             raise _OutOfMoneyError
 
     def _process_orders(self):
+        """
+        核心逻辑：逐个处理当前订单队列，判断是否满足触发条件，若满足则成交。
+        同时处理止盈/止损等跟随订单。
+        """
         data = self._data
         open, high, low = data.Open[-1], data.High[-1], data.Low[-1]
         reprocess_orders = False
 
-        # Process orders
-        for order in list(self.orders):  # type: Order
+        for order in list(self.orders):
 
-            # Related SL/TP order was already removed
             if order not in self.orders:
                 continue
 
-            # Check if stop condition was hit
             stop_price = order.stop
             if stop_price:
                 is_stop_hit = ((high >= stop_price) if order.is_long else (low <= stop_price))
                 if not is_stop_hit:
                     continue
-
-                # > When the stop price is reached, a stop order becomes a market/limit order.
-                # https://www.sec.gov/fast-answers/answersstopordhtm.html
                 order._replace(stop_price=None)
 
-            # Determine purchase price.
-            # Check if limit order can be filled.
+            # 判断限价订单是否触发
             if order.limit:
                 is_limit_hit = low <= order.limit if order.is_long else high >= order.limit
-                # When stop and limit are hit within the same bar, we pessimistically
-                # assume limit was hit before the stop (i.e. "before it counts")
                 is_limit_hit_before_stop = (is_limit_hit and
                                             (order.limit <= (stop_price or -np.inf)
                                              if order.is_long
@@ -896,100 +896,70 @@ class _Broker:
                 if not is_limit_hit or is_limit_hit_before_stop:
                     continue
 
-                # stop_price, if set, was hit within this bar
                 price = (min(stop_price or open, order.limit)
                          if order.is_long else
                          max(stop_price or open, order.limit))
             else:
-                # Market-if-touched / market order
-                # Contingent orders always on next open
                 prev_close = data.Close[-2]
                 price = prev_close if self._trade_on_close and not order.is_contingent else open
                 if stop_price:
                     price = max(price, stop_price) if order.is_long else min(price, stop_price)
 
-            # Determine entry/exit bar index
             is_market_order = not order.limit and not stop_price
             time_index = (
                 (self._i - 1)
                 if is_market_order and self._trade_on_close and not order.is_contingent else
                 self._i)
 
-            # If order is a SL/TP order, it should close an existing trade it was contingent upon
+            # 如果是跟随订单（止盈/止损），关闭原始交易
             if order.parent_trade:
                 trade = order.parent_trade
                 _prev_size = trade.size
-                # If order.size is "greater" than trade.size, this order is a trade.close()
-                # order and part of the trade was already closed beforehand
                 size = copysign(min(abs(_prev_size), abs(order.size)), order.size)
-                # If this trade isn't already closed (e.g. on multiple `trade.close(.5)` calls)
                 if trade in self.trades:
                     self._reduce_trade(trade, price, size, time_index)
                     assert order.size != -_prev_size or trade not in self.trades
-                if order in (trade._sl_order,
-                             trade._tp_order):
+                if order in (trade._sl_order, trade._tp_order):
                     assert order.size == -trade.size
-                    assert order not in self.orders  # Removed when trade was closed
+                    assert order not in self.orders
                 else:
-                    # It's a trade.close() order, now done
                     assert abs(_prev_size) >= abs(size) >= 1
                     self.orders.remove(order)
                 continue
 
-            # Else this is a stand-alone trade
-
-            # Adjust price to include commission (or bid-ask spread).
-            # In long positions, the adjusted price is a fraction higher, and vice versa.
+            # 独立订单：判断是否满足下单条件
             adjusted_price = self._adjusted_price(order.size, price)
             adjusted_price_plus_commission = adjusted_price + self._commission(order.size, price)
 
-            # If order size was specified proportionally,
-            # precompute true size in units, accounting for margin and spread/commissions
             size = order.size
             if -1 < size < 1:
                 size = copysign(int((self.margin_available * self._leverage * abs(size))
                                     // adjusted_price_plus_commission), size)
-                # Not enough cash/margin even for a single unit
                 if not size:
                     warnings.warn(
-                        f'time={self._i}: Broker canceled the relative-sized '
-                        f'order due to insufficient margin.', category=UserWarning)
-                    # XXX: The order is canceled by the broker?
+                        f'time={self._i}: 相对规模订单由于可用保证金不足被取消。', category=UserWarning)
                     self.orders.remove(order)
                     continue
             assert size == round(size)
             need_size = int(size)
 
             if not self._hedging:
-                # Fill position by FIFO closing/reducing existing opposite-facing trades.
-                # Existing trades are closed at unadjusted price, because the adjustment
-                # was already made when buying.
                 for trade in list(self.trades):
                     if trade.is_long == order.is_long:
                         continue
-                    assert trade.size * order.size < 0
-
-                    # Order size greater than this opposite-directed existing trade,
-                    # so it will be closed completely
                     if abs(need_size) >= abs(trade.size):
                         self._close_trade(trade, price, time_index)
                         need_size += trade.size
                     else:
-                        # The existing trade is larger than the new order,
-                        # so it will only be closed partially
                         self._reduce_trade(trade, price, need_size, time_index)
                         need_size = 0
-
                     if not need_size:
                         break
 
-            # If we don't have enough liquidity to cover for the order, the broker CANCELS it
-            if abs(need_size) * adjusted_price_plus_commission > \
-                    self.margin_available * self._leverage:
+            if abs(need_size) * adjusted_price_plus_commission > self.margin_available * self._leverage:
                 self.orders.remove(order)
                 continue
 
-            # Open a new trade
             if need_size:
                 self._open_trade(adjusted_price,
                                  need_size,
@@ -998,14 +968,9 @@ class _Broker:
                                  time_index,
                                  order.tag)
 
-                # We need to reprocess the SL/TP orders newly added to the queue.
-                # This allows e.g. SL hitting in the same bar the order was open.
-                # See https://github.com/kernc/backtesting.py/issues/119
                 if order.sl or order.tp:
                     if is_market_order:
                         reprocess_orders = True
-                    # Order.stop and TP hit within the same bar, but SL wasn't. This case
-                    # is not ambiguous, because stop and TP go in the same price direction.
                     elif stop_price and not order.limit and order.tp and (
                             (order.is_long and order.tp <= high and (order.sl or -np.inf) < low) or
                             (order.is_short and order.tp >= low and (order.sl or np.inf) > high)):
@@ -1013,22 +978,16 @@ class _Broker:
                     elif (low <= (order.sl or -np.inf) <= high or
                           low <= (order.tp or -np.inf) <= high):
                         warnings.warn(
-                            f"({data.index[-1]}) A contingent SL/TP order would execute in the "
-                            "same bar its parent stop/limit order was turned into a trade. "
-                            "Since we can't assert the precise intra-candle "
-                            "price movement, the affected SL/TP order will instead be executed on "
-                            "the next (matching) price/bar, making the result (of this trade) "
-                            "somewhat dubious. "
-                            "See https://github.com/kernc/backtesting.py/issues/119",
-                            UserWarning)
+                            f"({data.index[-1]}) 同一根K线内的触发订单及其止盈/止损存在冲突，"
+                            "止盈/止损将在下一根K线处理。此结果可能不具确定性。", UserWarning)
 
-            # Order processed
             self.orders.remove(order)
 
         if reprocess_orders:
             self._process_orders()
 
     def _reduce_trade(self, trade: Trade, price: float, size: float, time_index: int):
+        """ 减少或部分平掉某笔持仓 """
         assert trade.size * size < 0
         assert abs(trade.size) >= abs(size)
 
@@ -1037,20 +996,19 @@ class _Broker:
         if not size_left:
             close_trade = trade
         else:
-            # Reduce existing trade ...
             trade._replace(size=size_left)
             if trade._sl_order:
                 trade._sl_order._replace(size=-trade.size)
             if trade._tp_order:
                 trade._tp_order._replace(size=-trade.size)
 
-            # ... by closing a reduced copy of it
             close_trade = trade._copy(size=-size, sl_order=None, tp_order=None)
             self.trades.append(close_trade)
 
         self._close_trade(close_trade, price, time_index)
 
     def _close_trade(self, trade: Trade, price: float, time_index: int):
+        """ 完全平掉一个交易 """
         self.trades.remove(trade)
         if trade._sl_order:
             self.orders.remove(trade._sl_order)
@@ -1059,22 +1017,20 @@ class _Broker:
 
         closed_trade = trade._replace(exit_price=price, exit_bar=time_index)
         self.closed_trades.append(closed_trade)
-        # Apply commission one more time at trade exit
+
+        # 平仓时扣除手续费
         commission = self._commission(trade.size, price)
         self._cash += trade.pl - commission
-        # Save commissions on Trade instance for stats
+
         trade_open_commission = self._commission(closed_trade.size, closed_trade.entry_price)
-        # applied here instead of on Trade open because size could have changed
-        # by way of _reduce_trade()
         closed_trade._commissions = commission + trade_open_commission
 
     def _open_trade(self, price: float, size: int,
                     sl: Optional[float], tp: Optional[float], time_index: int, tag):
+        """ 开仓逻辑，生成新的交易对象 """
         trade = Trade(self, size, price, time_index, tag)
         self.trades.append(trade)
-        # Apply broker commission at trade open
         self._cash -= self._commission(size, price)
-        # Create SL/TP (bracket) orders.
         if tp:
             trade.tp = tp
         if sl:

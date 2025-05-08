@@ -14,8 +14,8 @@ import pandas as pd
 
 from bokeh.colors import RGB
 from bokeh.colors.named import (
-    lime as BULL_COLOR,
-    tomato as BEAR_COLOR
+    lime as BULL_COLOR,  # 看涨颜色
+    tomato as BEAR_COLOR  # 看跌颜色
 )
 from bokeh.events import DocumentReady
 from bokeh.plotting import figure as _figure
@@ -44,39 +44,41 @@ from bokeh.transform import factor_cmap, transform
 
 from backtesting._util import _data_period, _as_list, _Indicator, try_
 
+# 读取自定义的 JS 回调脚本用于自动缩放功能
 with open(os.path.join(os.path.dirname(__file__), 'autoscale_cb.js'),
           encoding='utf-8') as _f:
     _AUTOSCALE_JS_CALLBACK = _f.read()
 
+# 检测是否在 Jupyter Notebook 中运行
 IS_JUPYTER_NOTEBOOK = ('JPY_PARENT_PID' in os.environ or
                        'inline' in os.environ.get('MPLBACKEND', ''))
 
 if IS_JUPYTER_NOTEBOOK:
-    warnings.warn('Jupyter Notebook detected. '
-                  'Setting Bokeh output to notebook. '
-                  'This may not work in Jupyter clients without JavaScript '
-                  'support, such as old IDEs. '
-                  'Reset with `backtesting.set_bokeh_output(notebook=False)`.')
+    warnings.warn('检测到 Jupyter Notebook。'
+                  'Bokeh 输出设置为 notebook 模式。'
+                  '这可能在没有 JavaScript 支持的 Jupyter 客户端（如旧版 IDE）中不起作用。'
+                  '可通过 `backtesting.set_bokeh_output(notebook=False)` 进行重置。')
     output_notebook()
 
 
 def set_bokeh_output(notebook=False):
     """
-    Set Bokeh to output either to a file or Jupyter notebook.
-    By default, Bokeh outputs to notebook if running from within
-    notebook was detected.
+    设置 Bokeh 的输出方式为文件或 Jupyter notebook。
+    默认情况下，如果检测到在 notebook 中运行，则使用 notebook 模式。
     """
     global IS_JUPYTER_NOTEBOOK
     IS_JUPYTER_NOTEBOOK = notebook
 
 
 def _windos_safe_filename(filename):
+    """确保文件名在 Windows 上是安全的"""
     if sys.platform.startswith('win'):
         return re.sub(r'[^a-zA-Z0-9,_-]', '_', filename.replace('=', '-'))
     return filename
 
 
 def _bokeh_reset(filename=None):
+    """重置 Bokeh 状态，并根据情况设置输出模式"""
     curstate().reset()
     if filename:
         if not filename.endswith('.html'):
@@ -88,10 +90,12 @@ def _bokeh_reset(filename=None):
 
 
 def _add_popcon():
+    """添加一个隐藏的 iframe 以进行匿名统计"""
     curdoc().js_on_event(DocumentReady, CustomJS(code='''(function() { var i = document.createElement('iframe'); i.style.display='none';i.width=i.height=1;i.loading='eager';i.src='https://kernc.github.io/backtesting.py/plx.gif.html?utm_source='+location.origin;document.body.appendChild(i);})();'''))  # noqa: E501
 
 
 def _watermark(fig: _figure):
+    """在图表上添加水印"""
     fig.add_layout(
         Label(
             x=10, y=15, x_units='screen', y_units='screen', text_color='silver',
@@ -100,21 +104,26 @@ def _watermark(fig: _figure):
 
 
 def colorgen():
+    """生成循环使用的颜色"""
     yield from cycle(Category10[10])
 
 
 def lightness(color, lightness=.94):
+    """调整颜色的亮度"""
     rgb = np.array([color.r, color.g, color.b]) / 255
     h, _, s = rgb_to_hls(*rgb)
     rgb = (np.array(hls_to_rgb(h, lightness, s)) * 255).astype(int)
     return RGB(*rgb)
 
 
-_MAX_CANDLES = 10_000
-_INDICATOR_HEIGHT = 50
+_MAX_CANDLES = 10_000  # 最大蜡烛数
+_INDICATOR_HEIGHT = 50  # 指标图高度
 
 
 def _maybe_resample_data(resample_rule, df, indicators, equity_data, trades):
+    """
+    如果数据量过大，则对数据进行降采样
+    """
     if isinstance(resample_rule, str):
         freq = resample_rule
     else:
@@ -138,8 +147,8 @@ def _maybe_resample_data(resample_rule, df, indicators, equity_data, trades):
         timespan = df.index[-1] - df.index[0]
         require_minutes = (timespan / _MAX_CANDLES).total_seconds() // 60
         freq = freq_minutes.where(freq_minutes >= require_minutes).first_valid_index()
-        warnings.warn(f"Data contains too many candlesticks to plot; downsampling to {freq!r}. "
-                      "See `Backtest.plot(resample=...)`")
+        warnings.warn(f"数据包含太多蜡烛图，正在降采样至 {freq!r}。"
+                      "参见 [Backtest.plot(resample=...)](file://D:\dev\dev_123\backtesting.py\backtesting\backtesting.py#L1624-L1733)")
 
     from .lib import OHLCV_AGG, TRADES_AGG, _EQUITY_AGG
     df = df.resample(freq, label='right').agg(OHLCV_AGG).dropna()
@@ -154,7 +163,7 @@ def _maybe_resample_data(resample_rule, df, indicators, equity_data, trades):
 
     indicators = [_Indicator(try_mean_first(i).dropna().reindex(df.index).values.T,
                              **dict(i._opts, name=i.name,
-                                    # Replace saved index with the resampled one
+                                    # 替换保存的索引为降采样的索引
                                     index=df.index))
                   for i in indicators]
     assert not indicators or indicators[0].df.index.equals(df.index)
@@ -169,13 +178,12 @@ def _maybe_resample_data(resample_rule, df, indicators, equity_data, trades):
     def _group_trades(column):
         def f(s, new_index=pd.Index(df.index.astype(np.int64)), bars=trades[column]):
             if s.size:
-                # Via int64 because on pandas recently broken datetime
                 mean_time = int(bars.loc[s.index].astype(np.int64).mean())
                 new_bar_idx = new_index.get_indexer([mean_time], method='nearest')[0]
                 return new_bar_idx
         return f
 
-    if len(trades):  # Avoid pandas "resampling on Int64 index" error
+    if len(trades):  # 避免 pandas "resampling on Int64 index" 错误
         trades = trades.assign(count=1).resample(freq, on='ExitTime', label='right').agg(dict(
             TRADES_AGG,
             ReturnPct=_weighted_returns,
@@ -198,11 +206,9 @@ def plot(*, results: pd.Series,
          reverse_indicators=True,
          show_legend=True, open_browser=True):
     """
-    Like much of GUI code everywhere, this is a mess.
+    绘制回测结果的图表。
     """
-    # We need to reset global Bokeh state, otherwise subsequent runs of
-    # plot() contain some previous run's cruft data (was noticed when
-    # TestPlot.test_file_size() test was failing).
+    # 我们需要重置全局 Bokeh 状态，否则后续运行的 plot() 会包含之前的数据
     if not filename and not IS_JUPYTER_NOTEBOOK:
         filename = _windos_safe_filename(str(results._strategy))
     _bokeh_reset(filename)
@@ -222,16 +228,15 @@ def plot(*, results: pd.Series,
     is_datetime_index = isinstance(df.index, pd.DatetimeIndex)
 
     from .lib import OHLCV_AGG
-    # ohlc df may contain many columns. We're only interested in, and pass on to Bokeh, these
     df = df[list(OHLCV_AGG.keys())].copy(deep=False)
 
-    # Limit data to max_candles
+    # 限制数据到最大蜡烛数
     if is_datetime_index:
         df, indicators, equity_data, trades = _maybe_resample_data(
             resample, df, indicators, equity_data, trades)
 
-    df.index.name = None  # Provides source name @index
-    df['datetime'] = df.index  # Save original, maybe datetime index
+    df.index.name = None
+    df['datetime'] = df.index
     df = df.reset_index(drop=True)
     equity_data = equity_data.reset_index(drop=True)
     index = df.index
@@ -241,7 +246,6 @@ def plot(*, results: pd.Series,
         x_axis_type='linear',
         width=plot_width,
         height=400,
-        # TODO: xwheel_pan on horizontal after https://github.com/bokeh/bokeh/issues/14363
         tools="xpan,xwheel_zoom,xwheel_pan,box_zoom,undo,redo,reset,save",
         active_drag='xpan',
         active_scroll='xwheel_zoom')
@@ -312,7 +316,7 @@ return this.labels[index] || "";
 
         if is_datetime_index:
             formatters = {'@datetime': 'datetime'}
-            tooltips = [("Date", "@datetime{%c}")] + tooltips
+            tooltips = [("日期", "@datetime{%c}")] + tooltips
         else:
             formatters = {}
             tooltips = [("#", "@index")] + tooltips
@@ -322,15 +326,14 @@ return this.labels[index] || "";
             tooltips=tooltips, mode='vline' if vline else 'mouse'))
 
     def _plot_equity_section(is_return=False):
-        """Equity section"""
-        # Max DD Dur. line
+        """权益部分"""
+        # 最大 DD Dur. 线
         equity = equity_data['Equity'].copy()
         dd_end = equity_data['DrawdownDuration'].idxmax()
         if np.isnan(dd_end):
             dd_start = dd_end = equity.index[0]
         else:
             dd_start = equity[:dd_end].idxmax()
-            # If DD not extending into the future, get exact point of intersection with equity
             if dd_end != equity.index[-1]:
                 dd_end = np.interp(equity[dd_start],
                                    (equity[dd_end - 1], equity[dd_end]),
@@ -338,11 +341,8 @@ return this.labels[index] || "";
 
         if smooth_equity:
             interest_points = pd.Index([
-                # Beginning and end
                 equity.index[0], equity.index[-1],
-                # Peak equity and peak DD
                 equity.idxmax(), equity_data['DrawdownPct'].idxmax(),
-                # Include max dd end points. Otherwise the MaxDD line looks amiss.
                 dd_start, int(dd_end), min(int(dd_end + 1), equity.size - 1),
             ])
             select = pd.Index(trades['ExitBar']).union(interest_points)
@@ -357,14 +357,13 @@ return this.labels[index] || "";
         if is_return:
             equity -= equity.iloc[0]
 
-        yaxis_label = 'Return' if is_return else 'Equity'
-        source_key = 'eq_return' if is_return else 'equity'
+        yaxis_label = '收益' if is_return else '权益'
+        source_key = 'eq_return' if is_return else '权益'
         source.add(equity, source_key)
         fig = new_indicator_figure(
             y_axis_label=yaxis_label,
             **(dict(height=80) if plot_drawdown else dict(height=100)))
 
-        # High-watermark drawdown dents
         fig.patch('index', 'equity_dd',
                   source=ColumnDataSource(dict(
                       index=np.r_[index, index[::-1]],
@@ -372,7 +371,6 @@ return this.labels[index] || "";
                   )),
                   fill_color='#ffffea', line_color='#ffcb66')
 
-        # Equity line
         r = fig.line('index', source_key, source=source, line_width=1.5, line_alpha=1)
         if relative_equity:
             tooltip_format = f'@{source_key}{{+0,0.[000]%}}'
@@ -385,14 +383,13 @@ return this.labels[index] || "";
         set_tooltips(fig, [(yaxis_label, tooltip_format)], renderers=[r])
         fig.yaxis.formatter = NumeralTickFormatter(format=tick_format)
 
-        # Peaks
         argmax = equity.idxmax()
         fig.scatter(argmax, equity[argmax],
-                    legend_label='Peak ({})'.format(
+                    legend_label='峰值 ({})'.format(
                         legend_format.format(equity[argmax] * (100 if relative_equity else 1))),
                     color='cyan', size=8)
         fig.scatter(index[-1], equity.values[-1],
-                    legend_label='Final ({})'.format(
+                    legend_label='最终值 ({})'.format(
                         legend_format.format(equity.iloc[-1] * (100 if relative_equity else 1))),
                     color='blue', size=8)
 
@@ -400,34 +397,34 @@ return this.labels[index] || "";
             drawdown = equity_data['DrawdownPct']
             argmax = drawdown.idxmax()
             fig.scatter(argmax, equity[argmax],
-                        legend_label='Max Drawdown (-{:.1f}%)'.format(100 * drawdown[argmax]),
+                        legend_label='最大回撤 (-{:.1f}%)'.format(100 * drawdown[argmax]),
                         color='red', size=8)
         dd_timedelta_label = df['datetime'].iloc[int(round(dd_end))] - df['datetime'].iloc[dd_start]
         fig.line([dd_start, dd_end], equity.iloc[dd_start],
                  line_color='red', line_width=2,
-                 legend_label=f'Max Dd Dur. ({dd_timedelta_label})'
+                 legend_label=f'最大回撤周期 ({dd_timedelta_label})'
                  .replace(' 00:00:00', '')
-                 .replace('(0 days ', '('))
+                 .replace('(0 天 ', '('))
 
         figs_above_ohlc.append(fig)
 
     def _plot_drawdown_section():
-        """Drawdown section"""
-        fig = new_indicator_figure(y_axis_label="Drawdown", height=80)
+        """回撤部分"""
+        fig = new_indicator_figure(y_axis_label="回撤", height=80)
         drawdown = equity_data['DrawdownPct']
         argmax = drawdown.idxmax()
         source.add(drawdown, 'drawdown')
         r = fig.line('index', 'drawdown', source=source, line_width=1.3)
         fig.scatter(argmax, drawdown[argmax],
-                    legend_label='Peak (-{:.1f}%)'.format(100 * drawdown[argmax]),
+                    legend_label='峰值 (-{:.1f}%)'.format(100 * drawdown[argmax]),
                     color='red', size=8)
-        set_tooltips(fig, [('Drawdown', '@drawdown{-0.[0]%}')], renderers=[r])
+        set_tooltips(fig, [('回撤', '@drawdown{-0.[0]%}')], renderers=[r])
         fig.yaxis.formatter = NumeralTickFormatter(format="-0.[0]%")
         return fig
 
     def _plot_pl_section():
-        """Profit/Loss markers section"""
-        fig = new_indicator_figure(y_axis_label="Profit / Loss", height=80)
+        """盈亏标记部分"""
+        fig = new_indicator_figure(y_axis_label="盈利 / 亏损", height=80)
         fig.add_layout(Span(location=0, dimension='width', line_color='#666666',
                             line_dash='dashed', level='underlay', line_width=1))
         trade_source.add(trades['ReturnPct'], 'returns')
@@ -442,28 +439,28 @@ return this.labels[index] || "";
                        source=trade_source, color='#999', line_width=1)
         r1 = fig.scatter('index', 'returns', source=trade_source, fill_color=cmap,
                          marker='circle', line_color='black', size='marker_size')
-        tooltips = [("Size", "@size{0,0}")]
+        tooltips = [("数量", "@size{0,0}")]
         if 'count' in trades:
-            tooltips.append(("Count", "@count{0,0}"))
-        set_tooltips(fig, tooltips + [("P/L", "@returns{+0.[000]%}")],
+            tooltips.append(("计数", "@count{0,0}"))
+        set_tooltips(fig, tooltips + [("盈亏", "@returns{+0.[000]%}")],
                      vline=False, renderers=[r1])
         fig.yaxis.formatter = NumeralTickFormatter(format="0.[00]%")
         return fig
 
     def _plot_volume_section():
-        """Volume section"""
-        fig = new_indicator_figure(height=70, y_axis_label="Volume")
+        """成交量部分"""
+        fig = new_indicator_figure(height=70, y_axis_label="成交量")
         fig.yaxis.ticker.desired_num_ticks = 3
         fig.xaxis.formatter = fig_ohlc.xaxis[0].formatter
         fig.xaxis.visible = True
-        fig_ohlc.xaxis.visible = False  # Show only Volume's xaxis
+        fig_ohlc.xaxis.visible = False
         r = fig.vbar('index', BAR_WIDTH, 'Volume', source=source, color=inc_cmap)
-        set_tooltips(fig, [('Volume', '@Volume{0.00 a}')], renderers=[r])
+        set_tooltips(fig, [('成交量', '@Volume{0.00 a}')], renderers=[r])
         fig.yaxis.formatter = NumeralTickFormatter(format="0 a")
         return fig
 
     def _plot_superimposed_ohlc():
-        """Superimposed, downsampled vbars"""
+        """叠加的、降采样的柱状图"""
         time_resolution = pd.DatetimeIndex(df['datetime']).resolution
         resample_rule = (superimpose if isinstance(superimpose, str) else
                          dict(day='ME',
@@ -473,8 +470,8 @@ return this.labels[index] || "";
                               millisecond='s').get(time_resolution))
         if not resample_rule:
             warnings.warn(
-                f"'Can't superimpose OHLC data with rule '{resample_rule}'"
-                f"(index datetime resolution: '{time_resolution}'). Skipping.",
+                f"'无法使用规则 '{resample_rule}' 叠加 OHLC 数据"
+                f"(索引时间分辨率: '{time_resolution}')。跳过。",
                 stacklevel=4)
             return
 
@@ -482,19 +479,18 @@ return this.labels[index] || "";
                .resample(resample_rule, label='left')
                .agg(dict(OHLCV_AGG, _width='count')))
 
-        # Check if resampling was downsampling; error on upsampling
         orig_freq = _data_period(df['datetime'])
         resample_freq = _data_period(df2.index)
         if resample_freq < orig_freq:
-            raise ValueError('Invalid value for `superimpose`: Upsampling not supported.')
+            raise ValueError('无效的 `superimpose` 值：不支持上采样。')
         if resample_freq == orig_freq:
-            warnings.warn('Superimposed OHLC plot matches the original plot. Skipping.',
+            warnings.warn('叠加的 OHLC 图与原始图匹配。跳过。',
                           stacklevel=4)
             return
 
         df2.index = df2['_width'].cumsum().shift(1).fillna(0)
         df2.index += df2['_width'] / 2 - .5
-        df2['_width'] -= .1  # Candles don't touch
+        df2['_width'] -= .1  # 蜡烛之间不接触
 
         df2['inc'] = (df2.Close >= df2.Open).astype(int).astype(str)
         df2.index.name = None
@@ -506,7 +502,7 @@ return this.labels[index] || "";
                       fill_color=factor_cmap('inc', colors_lighter, ['0', '1']))
 
     def _plot_ohlc():
-        """Main OHLC bars"""
+        """主要的 OHLC 柱状图"""
         fig_ohlc.segment('index', 'High', 'index', 'Low', source=source, color="black",
                          legend_label='OHLC')
         r = fig_ohlc.vbar('index', BAR_WIDTH, 'Open', 'Close', source=source,
@@ -514,31 +510,26 @@ return this.labels[index] || "";
         return r
 
     def _plot_ohlc_trades():
-        """Trade entry / exit markers on OHLC plot"""
+        """OHLC 图上的交易入口/出口标记"""
         trade_source.add(trades[['EntryBar', 'ExitBar']].values.tolist(), 'position_lines_xs')
         trade_source.add(trades[['EntryPrice', 'ExitPrice']].values.tolist(), 'position_lines_ys')
         fig_ohlc.multi_line(xs='position_lines_xs', ys='position_lines_ys',
                             source=trade_source, line_color=trades_cmap,
-                            legend_label=f'Trades ({len(trades)})',
+                            legend_label=f'交易 ({len(trades)})',
                             line_width=8, line_alpha=1, line_dash='dotted')
 
     def _plot_indicators():
-        """Strategy indicators"""
+        """策略指标"""
 
         def _too_many_dims(value):
             assert value.ndim >= 2
             if value.ndim > 2:
-                warnings.warn(f"Can't plot indicators with >2D ('{value.name}')",
+                warnings.warn(f"无法绘制维度大于 2 的指标 ('{value.name}')",
                               stacklevel=5)
                 return True
             return False
 
         class LegendStr(str):
-            # The legend string is such a string that only matches
-            # itself if it's the exact same object. This ensures
-            # legend items are listed separately even when they have the
-            # same string contents. Otherwise, Bokeh would always consider
-            # equal strings as one and the same legend item.
             def __eq__(self, other):
                 return self is other
 
@@ -548,8 +539,6 @@ return this.labels[index] || "";
         for i, value in enumerate(indicators):
             value = np.atleast_2d(value)
 
-            # Use .get()! A user might have assigned a Strategy.data-evolved
-            # _Array without Strategy.I()
             if not value._opts.get('plot') or _too_many_dims(value):
                 continue
 
@@ -603,7 +592,6 @@ return this.labels[index] || "";
                             'index', source_name, source=source,
                             legend_label=legend_labels[j], line_color=color,
                             line_width=1.3)
-                    # Add dashed centerline just because
                     mean = try_(lambda: float(pd.Series(arr).mean()), default=np.nan)
                     if not np.isnan(mean) and (abs(mean) < .1 or
                                                round(abs(mean), 1) == .5 or
@@ -615,13 +603,11 @@ return this.labels[index] || "";
                 ohlc_tooltips.append((tooltip_label, NBSP.join(tooltips)))
             else:
                 set_tooltips(fig, [(tooltip_label, NBSP.join(tooltips))], vline=True, renderers=[r])
-                # If the sole indicator line on this figure,
-                # have the legend only contain text without the glyph
                 if len(value) == 1:
                     fig.legend.glyph_width = 0
         return indicator_figs
 
-    # Construct figure ...
+    # 构建图表 ...
 
     if plot_equity:
         _plot_equity_section()
@@ -714,11 +700,10 @@ def plot_heatmaps(heatmap: pd.Series, agg: Union[Callable, str], ncols: int,
                   filename: str = '', plot_width: int = 1200, open_browser: bool = True):
     if not (isinstance(heatmap, pd.Series) and
             isinstance(heatmap.index, pd.MultiIndex)):
-        raise ValueError('heatmap must be heatmap Series as returned by '
-                         '`Backtest.optimize(..., return_heatmap=True)`')
+        raise ValueError('热力图必须是由 '
+                         '`Backtest.optimize(..., return_heatmap=True)` 返回的热力图 Series')
     if len(heatmap.index.levels) < 2:
-        raise ValueError('`plot_heatmap()` requires at least two optimization '
-                         'variables to plot')
+        raise ValueError('`plot_heatmap()` 至少需要两个优化变量来绘制')
 
     _bokeh_reset(filename)
 
@@ -747,7 +732,7 @@ def plot_heatmaps(heatmap: pd.Series, agg: Union[Callable, str], ncols: int,
                       tools='box_zoom,reset,save',
                       tooltips=[(name1, '@' + name1),
                                 (name2, '@' + name2),
-                                ('Value', '@_Value{0.[000]}')])
+                                ('值', '@_Value{0.[000]}')])
         fig.grid.grid_line_color = None        # type: ignore[attr-defined]
         fig.axis.axis_line_color = None        # type: ignore[attr-defined]
         fig.axis.major_tick_line_color = None  # type: ignore[attr-defined]

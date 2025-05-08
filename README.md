@@ -1,4 +1,3 @@
-[![](https://i.imgur.com/E8Kj69Y.png)](https://kernc.github.io/backtesting.py/)
 
 Backtesting.py
 ==============
@@ -80,8 +79,7 @@ _trades                       Size  EntryB...
 dtype: object
 
 ```
-[![plot of trading simulation](./xRFNHfg.png)](https://kernc.github.io/backtesting.py/#example)
-
+![交易模拟图](./xRFNHfg.png)
 
 
 
